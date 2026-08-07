@@ -1,4 +1,4 @@
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIRequestFactory
 from .serializers import ItemSerializer
@@ -7,6 +7,7 @@ from .models import AuthAccount, Item, MenuEntry
 
 
 class AuthEndpointTests(APITestCase):
+    @override_settings(SIGNUP_SECURITY_KEY='secret-key')
     def test_register_and_login_work_with_backend(self):
         register_url = reverse('auth-register')
         response = self.client.post(register_url, {
@@ -14,6 +15,7 @@ class AuthEndpointTests(APITestCase):
             'email': 'test@example.com',
             'password': 'secret123',
             'role': 'storekeeper',
+            'signup_security_key': 'secret-key',
         }, format='json')
 
         self.assertEqual(response.status_code, 201)
@@ -29,6 +31,21 @@ class AuthEndpointTests(APITestCase):
         self.assertEqual(login_response.status_code, 200)
         self.assertEqual(login_response.json()['email'], 'test@example.com')
         self.assertEqual(login_response.json()['role'], 'storekeeper')
+
+    @override_settings(SIGNUP_SECURITY_KEY='secret-key')
+    def test_register_rejects_invalid_signup_security_key(self):
+        register_url = reverse('auth-register')
+        response = self.client.post(register_url, {
+            'name': 'Blocked User',
+            'email': 'blocked@example.com',
+            'password': 'secret123',
+            'role': 'storekeeper',
+            'signup_security_key': 'wrong-key',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['detail'], 'A valid signup security key is required.')
+        self.assertFalse(AuthAccount.objects.filter(email__iexact='blocked@example.com').exists())
 
 
 class AdminEndpointsTests(APITestCase):

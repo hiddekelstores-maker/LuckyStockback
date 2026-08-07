@@ -1,4 +1,5 @@
 from collections import defaultdict
+from django.conf import settings
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -15,9 +16,14 @@ class AuthViewSet(viewsets.ViewSet):
         password = request.data.get('password') or ''
         name = (request.data.get('name') or '').strip()
         role = (request.data.get('role') or 'storekeeper').strip()
+        signup_security_key = (request.data.get('signup_security_key') or '').strip()
+        expected_key = getattr(settings, 'SIGNUP_SECURITY_KEY', '').strip()
 
         if not email or not password or not name:
             return Response({'detail': 'Name, email, and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if expected_key and signup_security_key != expected_key:
+            return Response({'detail': 'A valid signup security key is required.'}, status=status.HTTP_403_FORBIDDEN)
 
         if AuthAccount.objects.filter(email__iexact=email).exists():
             return Response({'detail': 'Account already exists.'}, status=status.HTTP_409_CONFLICT)

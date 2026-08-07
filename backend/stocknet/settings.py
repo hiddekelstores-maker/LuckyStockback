@@ -97,5 +97,19 @@ USE_I18N = True
 USE_TZ = True
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-CORS_ALLOW_ALL_ORIGINS = True
+
+# CORS configuration: allow the front-end origins used in development and production.
+# Explicitly list allowed origins rather than allowing all origins.
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5174',
+    'https://luckystockfront-production.up.railway.app',
+]
+
+# If you need to allow all origins in local development set the environment
+# variable DJANGO_CORS_ALLOW_ALL=true; otherwise keep it False for production.
+import os as _os
+CORS_ALLOW_ALL_ORIGINS = _os.environ.get('DJANGO_CORS_ALLOW_ALL', 'False').lower() in {'1', 'true', 'yes'}
+
+SIGNUP_SECURITY_KEY = os.environ.get('SIGNUP_SECURITY_KEY', '')
+
 REST_FRAMEWORK = {'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny']}
